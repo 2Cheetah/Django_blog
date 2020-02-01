@@ -1,0 +1,135 @@
+https://youtu.be/qDwdMDQ8oX4
+Python Django Tutorial: Full-Featured Web App Part 3 - Templates
+https://github.com/CoreyMSchafer/code_snippets/tree/master/Django_Blog/snippets
+
+Create a folder /blog/templates
+Create a folder /blog/templates/blog
+Create a file /blog/templates/blog/home.html
+Create a file /blog/templates/blog/about.html
+
+Install new app. Modify django_blog/settings.py:
+INSTALLED_APPS = [
+    'blog.apps.BlogConfig', <= to be added
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+
+---
+
+templates, models etc - all of these are apps and must be added to django_blog/settings.py file as previously.
+
+---
+
+Modify blog/views.py:
+def home(request):
+    return render(request, 'blog/home.html') <= modified
+
+
+def about(request):
+    return render(request, 'blog/about.html') <= modified
+
+HttpResponse not needed anymore, remove:
+from django.http import HttpResponse
+
+---
+
+Create sample posts in blog/views.py:
+posts = [
+    {
+        'author': 'DS',
+        'title': 'Blog Post 1',
+        'content': 'First post content',
+        'date_posted': '20.01.2020'
+    },
+    {
+        'author': 'Jane Doe',
+        'title': 'Blog Post 2',
+        'content': 'Second post content',
+        'date_posted': '20.01.2019'
+    }
+]
+
+---
+
+Give access to these posts in home() function in blog/views.py:
+def home(request):
+    context = {                 <=
+        'posts': posts
+    }
+    return render(request, 'blog/home.html', context)
+
+---
+
+Modify home.html as follows to loop over the posts:
+<body>
+    {% for post in posts %}
+        <h1>{{ post.title }}</h1>
+        <p>By {{ post.author }} on {{ post.date_posted }}</p>
+        <p>{{ post.content }}</p>
+    {% endfor %}
+</body>
+
+---
+
+Make dynamic title. In home.html and about.html:
+<head>
+    {% if title %}
+        <title>Django Blog - {{ title }}</title>
+    {% else %}
+        <title>Django Blog</title>
+    {% endif %}
+</head>
+
+In views.py:
+def about(request):
+    context = {
+        'title': 'About Page'
+    }
+    return render(request, 'blog/about.html', context)
+
+OR:
+def about(request):
+    return render(request, 'blog/about.html', {'title': 'About Page'})
+
+---
+
+According to DRY convention (don't repeat yourself), it's needed to have html template in one place. Create blog/base.html:
+<!DOCTYPE html>
+<html>
+<head>
+    {% if title %}
+        <title>Django Blog - {{ title }}</title>
+    {% else %}
+        <title>Django Blog</title>
+    {% endif %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+</body>
+</html>
+
+Modify home.html and about.html according to following scheme (e.g. home.html):
+{% extends "blog/base.html" %}
+{% block content %}
+    {% for post in posts %}
+        <h1>{{ post.title }}</h1>
+        <p>By {{ post.author }} on {{ post.date_posted }}</p>
+        <p>{{ post.content }}</p>
+    {% endfor %}
+{% endblock content %}
+
+---
+
+Introduce bootstrap to base template from https://getbootstrap.com/docs/4.4/getting-started/introduction/#starter-template
+
+---
+
+To be able to load main.css from static folder, it's needed to add following line in the very beginning of base.html:
+{% load static %}
+
+then, to load main.css add:
+<link rel="stylesheet" type="text/css" href="{% static 'blog/main.css' %}">s

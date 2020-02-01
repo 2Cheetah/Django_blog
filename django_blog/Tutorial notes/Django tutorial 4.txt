@@ -1,0 +1,8 @@
+To create admin it's needed to run following command:
+> python manage.py createsuperuser
+
+But it will not work without created DB. To create one it's needed to execute following commands:
+> python manage.py makemigrations <= it's needed to prepare all migrations to be implemented
+> python manage.py migrate
+
+Create a user through admin panel.

@@ -1,0 +1,108 @@
+Creation of DB tables and posts.
+
+ORM - object relational mapping
+
+Classes = models
+
+To create table, it's needed to modify blog/models.py. E.g. to add Post model:
+from django.db import models
+from django.utils import timezone
+from django.contrib.auth.models import User
+
+
+class Post(models.Model):
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+    date_posted = models.DateTimeField(default=timezone.now)
+    # it's possible to use key auto_now=True, but then date will be updated with each post update. Key auto_now_add=True will assing datetime stamp only once, during creation of the post w/o possibility to change it later. Passing key default=timezone.now allows to update the value later. The function itself is passed to the key, not the result of function, that's why it's timezone.now, not timezone.now(). 
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    # on_delete=models.CASCADE means that after removal of the User, his posts would be deleted.
+
+---
+
+To implement the model into the DB it's needed to make migrations:
+> python manage.py makemigrations
+> python manage.py migrate
+
+---
+
+To see actual SQL code line to be executed:
+> python manage.py sqlmigrate blog 0001
+
+
+---
+
+To enter to django shell:
+> python manage.py shell
+
+To see all created users:
+> from django.contrib.auth.models import User
+> User.objects.all()
+
+To select firts user from list:
+> User.objects.first()
+
+To select explicitly (filter) a user:
+> User.objects.filter(username='TestUser')
+
+or:
+> user = User.objects.get(id=1)
+
+To check object attributes:
+> user = User.objects.filter(username='TestUser').first()
+> user.id
+> user.pk <= pk = id - pk is primary key
+
+To create a post:
+> from blog.models import Post
+> post_1 = Post(title='Blog 1', content='My first post content!', author=user)
+> post_1.save()
+
+or:
+> post_2 = Post(title='Blog 2', content='Second post content!', author_id=user.id)
+> post_2.save()
+
+---
+
+To make output of command Post.objects.all() be more readable (is: "<QuerySet [<Post: Post object (1)>]>"; should be: "<QuerySet [<Post: Blog 1>]>") it's needed to modify Post model in blog/models.py:
+class Post(models.Model):
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+    date_posted = models.DateTimeField(default=timezone.now)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+
+!   def __str__(self):
+!       return self.title
+
+---
+
+To view all post created by a user:
+> user.post_set.all()
+
+Generally speaking, it's "object.modelname_set"
+
+Or to create new post by this user:
+> user.post_set.create(title='Blog 3', content='Third post content!')
+
+It's not needed to explicitly choose the author. .save() is not needed as well.
+
+---
+
+To implement all this in site it's needed to modify views.py:
+from .models import Post
+
+
+def home(request):
+    context = {
+        'posts': Post.objects.all()
+    }
+    return render(request, 'blog/home.html', context)
+
+---
+
+To add Posts to admin panel it's needed to modify blog/adimn.py:
+from django.contrib import admin
+!from .models import Post
+
+
+!admin.site.register(Post)

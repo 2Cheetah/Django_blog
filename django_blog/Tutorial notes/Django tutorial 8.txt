@@ -1,0 +1,92 @@
+To create user profile and add profile picture it's needed to create profile model in users/models.py:
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # OneToOneField means that one user has one profile and vice versa. on_delete=models.CASCADE means that if user is deleted, then it's profile is deleted as well, but deleting profile doesn't lead to remove of user.
+    image = models.ImageField(default='default.jpg', upload_to='profile_pics')
+
+    def __str__(self):
+        return f'{self.user.username} Profile'
+
+---
+
+To be able to view created profile in admin page it's needed to modify users/admin.py:
+from django.contrib import admin
+from .models import Profile
+
+admin.site.register(Profile)
+
+---
+
+To be able to store pictures and uploaded documents in other places (not to mess up uploads from different apps), it's needed to add to settings.py:
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
+
+---
+
+To add profile picture and other data to profile page, it's needed to modify users/profile.html:
+{% extends "blog/base.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+  <div class="content-section">
+    <div class="media">
+      <img class="rounded-circle account-img" src="{{ user.profile.image.url }}">
+      <div class="media-body">
+        <h2 class="account-heading">{{ user.username }}</h2>
+        <p class="text-secondary">{{ user.email }}</p>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
+
+---
+
+To be able to view pictures in profile page it's needed to modify urls.py according to django documentation (https://docs.djangoproject.com/en/3.0/howto/static-files/#serving-static-files-during-development). It's different in development and production.
+!from django.conf import settings
+!from django.conf.urls.static import static
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('register/', user_views.register, name='register'),
+    path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
+    path('profile/', user_views.profile, name='profile'),
+    path('', include('blog.urls'))
+]
+
+!if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+---
+
+To automatically add profile and profile picture to new user, it's needed to create users/signal.py:
+from django.db.models.signals import post_save
+from django.contrib.auth.models import User
+from django.dispatch import receiver
+from .models import Profile
+
+
+@receiver(post_save, sender=User)
+def create_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+
+@receiver(post_save, sender=User)
+def save_profile(sender, instance, **kwargs):
+    instance.profile.save()
+
+---
+
+It's needed to modify users/apps.py as well:
+from django.apps import AppConfig
+
+
+class UsersConfig(AppConfig):
+    name = 'users'
+
+    def ready(self):
+        import users.signals

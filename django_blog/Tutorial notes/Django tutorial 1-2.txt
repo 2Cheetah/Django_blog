@@ -1,0 +1,80 @@
+https://youtu.be/UmljXZIypDc
+https://youtu.be/a48xeeo5Vnk
+
+Create new project:
+
+> django-admin startproject django_blog
+
+manage.py - file that allows us to run command-line commands
+
+__init__.py - file that tells python that folder that contains that file is a package
+
+Running a server:
+
+> python manage.py runserver
+http://127.0.0.1:8000 = localhost:8000
+
+To create an app in the project:
+
+> python manange.py startapp blog
+
+---
+
+blog/views.py:
+
+add:
+from django.http import HttpResponse
+
+def home(request):
+    return HttpResponse('<h1>Blog Home</h1>')
+
+---
+
+Create file: /blog/urls.py:
+from django.urls import path
+from . import views
+
+
+urlpatterns = [
+    path('', views.home, name='blog-home'),
+]
+
+---
+
+"blog-home" and not simply "home", because if this app will be reused in other projects it can be mistaken with another "home" pages.
+
+---
+
+django_blog/urls.py:
+
+add:
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('blog/', include('blog.urls')),
+]
+
+---
+
+To add new page:
+1) Add function in blog/views.py
+2) Add route in blog/urls.py
+
+(1)
+def about(request):
+    return HttpResponse('About Page')
+
+(2)
+urlpatterns = [
+    path('', views.home, name='blog-home'),
+    path('about/', views.about, name='blog-about')
+]
+
+---
+
+To be able to access home page by route: localhost:8000/ instead of localhost:8000/blog/ it's needed to modify django_blog/urls.py:
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('blog/', include('blog.urls')) => path('', include('blog.urls'))
+]

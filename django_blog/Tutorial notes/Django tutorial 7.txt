@@ -1,0 +1,111 @@
+To create login path, it's needed to modify django_blog/urls.py:
+
+from django.contrib import admin
+!from django.contrib.auth import views as auth_views
+from django.urls import path, include
+from users import views as user_views
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('register/', user_views.register, name='register'),
+!    path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
+!    path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
+    path('', include('blog.urls'))
+]
+
+---
+
+Create users/login.html:
+{% extends "blog/base.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+  <div class="content-section">
+    <form method="POST">
+      {% csrf_token %}
+      <fieldset class="form-group">
+        <legend class="border-bottom mb-4">Log In</legend>
+        {{ form|crispy }}
+      </fieldset>
+      <div class="form-group">
+        <button class="btn btn-outline-info" type="submit">Log In</button>
+      </div>
+    </form>
+    <div class="border-top pt3">
+      <small class="text-muted">
+        Need an account? <a class="ml-2" href="{% url 'register' %}">Register</a>
+      </small>
+    </div>
+  </div>
+{% endblock content %}
+
+---
+
+In case entering valid login and password Django automatically tries to redirect to account page, to change redirection to home page it's needed to add in settings.py:
+LOGIN_REDIRECT_URL = 'blog-home'
+
+---
+
+Create logout.html page from register.html:
+{% extends "blog/base.html" %}
+{% block content %}
+  <h2>You have been logged out</h2>
+  <div class="border-top pt3">
+    <small class="text-muted">
+      <a class="ml-2" href="{% url 'login' %}">Log in again</a>
+    </small>
+  </div>
+{% endblock content %}
+
+---
+
+Change behavior of base.html to change Login to Logout when user is logged in:
+<div class="navbar-nav">
+  {% if user.is_authenticated %}
+    <a class="nav-item nav-link" href="{% url 'logout' %}">{{ user.username }} - Logout</a>
+  {% else %}
+    <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
+    <a class="nav-item nav-link" href="{% url 'register' %}">Register</a>
+  {% endif %}
+</div>
+
+---
+
+Add profile page. users/profile.html:
+{% extends "blog/base.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+  <h1>{{ user.username }}</h1>
+{% endblock content %}
+
+Modify base.html:
+<div class="navbar-nav">
+  {% if user.is_authenticated %}
+    <a class="nav-item nav-link" href="{% url 'profile' %}">{{ user.username }}</a>
+    <a class="nav-item nav-link" href="{% url 'logout' %}">Logout</a>
+  {% else %}
+    <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
+    <a class="nav-item nav-link" href="{% url 'register' %}">Register</a>
+  {% endif %}
+</div>
+
+Add function to views.py:
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def profile(request):
+    return render(request, 'users/profile.html')
+
+Add route to urls.py:
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('register/', user_views.register, name='register'),
+    path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
+    path('profile/', user_views.profile, name='profile'),
+    path('', include('blog.urls'))
+]
+
+In case user is not logged in and tries to view profile page to redirect him to login page it's needed to modify settings.py, add to the file:
+LOGIN_URL = 'login'
+
+---
